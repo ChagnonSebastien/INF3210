@@ -41,7 +41,7 @@ Hamcrest 1.3 (Included in Intellij)
 - **Makefile** : Simply redirect to the build.xml file.
 - **ReadMe.md** : Hmmm, what is the use of this file? Nobody read this.
 - **Template.iml** : The idea project file
-- **Template.jjt** : **Important** ! This file is the JavaCC grammar file which generate everything in the gen-src/ folder!
+- **    Template.jjt** : **Important** ! This file is the JavaCC grammar file which generate everything in the gen-src/ folder!
 
 ## Running the tests
 
