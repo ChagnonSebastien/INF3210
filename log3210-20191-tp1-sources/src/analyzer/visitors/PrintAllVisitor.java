@@ -86,6 +86,11 @@ public class PrintAllVisitor implements ParserVisitor {
     }
 
     @Override
+    public Object visit(ASTMulExpr node, Object data) {
+        return null;
+    }
+
+    @Override
     public Object visit(ASTAddExpr node, Object data) {
         return null;
     }

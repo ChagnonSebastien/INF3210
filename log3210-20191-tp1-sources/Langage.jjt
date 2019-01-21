@@ -178,14 +178,16 @@ void Stmt() : { }
 
 void IfStmt() : {}
 {
-    //TODO a finir
-     <IF>
+    //TODO à finir
+     <IF> <LPAREN> GenValue() <RPAREN>
+     ( Stmt() | <LACC> Block() <RACC> [<ELSE> (<LACC> Block() <RACC> | Stmt() )])
 }
 
 void WhileStmt() : {}
 {
     //TODO à finir
-     <WHILE>
+     <WHILE> <LPAREN> GenValue() <RPAREN>
+     ( Stmt() | <LACC> Block() <RACC>)
 }
 
 void AssignStmt() : {}
@@ -196,12 +198,17 @@ void AssignStmt() : {}
 
 void Expr() : {Token t;}
 {
-    //TODO a complété.
+    //TODO à compléter.
     //TODO Vous pouvez modifier le contenu de cette règle et de toute les règles aillant "Expr dans leur nom",
-    //TODO et ajouté de nouvelle règles.
-    //TODO pour simplifier la correction, gardé "Expr" à la fin de toute les nouvelles règles créer pour
+    //TODO et ajouter de nouvelle règles.
+    //TODO pour simplifier la correction, garder "Expr" à la fin de toutes les nouvelles règles crées pour
     //TODO définir la grammaire des expressions.
     AddExpr() (<BOOLOP> AddExpr() )*
+}
+
+void MulExpr() : { Token t;}
+{
+    GenValue() ((<MULOP>) GenValue())*
 }
 
 void AddExpr() : { Token t;}

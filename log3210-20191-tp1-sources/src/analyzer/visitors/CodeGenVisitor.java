@@ -122,6 +122,11 @@ public class CodeGenVisitor implements ParserVisitor {
     }
 
     @Override
+    public Object visit(ASTMulExpr node, Object data) {
+        return null;
+    }
+
+    @Override
     public Object visit(ASTAddExpr node, Object data) {
         node.jjtGetChild(0).jjtAccept(this, null);
         for(int i = 1; i < node.jjtGetNumChildren(); i++) {
