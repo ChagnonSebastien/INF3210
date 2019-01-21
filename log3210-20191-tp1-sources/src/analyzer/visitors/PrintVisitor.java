@@ -100,6 +100,11 @@ public class PrintVisitor implements ParserVisitor {
     }
 
     @Override
+    public Object visit(ASTCompExpr node, Object data) {
+        return null;
+    }
+
+    @Override
     public Object visit(ASTGenValue node, Object data) {
         return null;
     }

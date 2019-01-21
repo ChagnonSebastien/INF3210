@@ -138,6 +138,11 @@ public class CodeGenVisitor implements ParserVisitor {
     }
 
     @Override
+    public Object visit(ASTCompExpr node, Object data) {
+        return null;
+    }
+
+    @Override
     public Object visit(ASTGenValue node, Object data) {
         Node n = node.jjtGetChild(0);
         if(n.getClass() == ASTIdentifier.class) {

@@ -179,14 +179,14 @@ void Stmt() : { }
 void IfStmt() : {}
 {
     //TODO à finir
-     <IF> <LPAREN> GenValue() <RPAREN>
+     <IF> <LPAREN> Expr() <RPAREN>
      ( Stmt() | <LACC> Block() <RACC> [<ELSE> (<LACC> Block() <RACC> | Stmt() )])
 }
 
 void WhileStmt() : {}
 {
     //TODO à finir
-     <WHILE> <LPAREN> GenValue() <RPAREN>
+     <WHILE> <LPAREN> Expr() <RPAREN>
      ( Stmt() | <LACC> Block() <RACC>)
 }
 
@@ -203,7 +203,7 @@ void Expr() : {Token t;}
     //TODO et ajouter de nouvelle règles.
     //TODO pour simplifier la correction, garder "Expr" à la fin de toutes les nouvelles règles crées pour
     //TODO définir la grammaire des expressions.
-    AddExpr() (<BOOLOP> AddExpr() )*
+    (CompExpr()) (<BOOLOP> CompExpr() )*
 }
 
 void MulExpr() : { Token t;}
@@ -213,14 +213,17 @@ void MulExpr() : { Token t;}
 
 void AddExpr() : { Token t;}
 {
-    GenValue() ((<PLUS> | <MINUS>) GenValue())*
+    MulExpr() ((<PLUS> | <MINUS>) MulExpr())*
+}
+
+void CompExpr() : { Token t;}
+{
+    AddExpr() ((<COMPARE>) AddExpr())*
 }
 
 void GenValue() : {}
 {
-    BoolValue()|
-	Identifier()|
-	IntValue() |
+	[<MINUS>] ((<NOT>)* (BoolValue() | Identifier()| IntValue())) |
 	(<LPAREN> Expr() <RPAREN>)
 
 }
