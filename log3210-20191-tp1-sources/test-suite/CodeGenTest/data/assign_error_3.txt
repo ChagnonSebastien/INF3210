@@ -1,0 +1,2 @@
+//must fail
+0asdf = 35;

@@ -1,0 +1,18 @@
+//simple
+while(true) ;
+
+//complet
+while(true) {
+}
+
+//imbriquer
+while(false) {
+    while(true);
+}
+
+//concatenation
+while(a) while(b) {
+    a = b;
+    a = a - 1;
+    b = b - 1;
+}

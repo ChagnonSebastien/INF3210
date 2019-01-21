@@ -1,0 +1,4 @@
+//stmt dans la condition
+while(a = 2) {
+    a = 2;
+}

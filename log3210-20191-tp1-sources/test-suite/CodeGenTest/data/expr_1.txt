@@ -1,0 +1,26 @@
+//expression arithmétique
+//expressions simples
+a = 1 + 1;
+
+b = a * 2;
+
+c = b - 3;
+
+d = c / 4;
+
+d2 = d % 4;
+
+//expressions chainée
+e = a + b + c + d + 5;
+f = e - d - c - b - 6;
+g = f * e * d * c * 7;
+
+//expression mélanger
+h = g + f / e * d - c % 8;
+i = h / g / 9 - 10 + f % e % d;
+
+//négatif
+j = -i;
+k = -j * -i;
+l = -k--j--i;
+m = l + -k - -10;

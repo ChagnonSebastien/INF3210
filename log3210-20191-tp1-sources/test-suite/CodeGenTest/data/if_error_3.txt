@@ -1,0 +1,6 @@
+//else sans block
+
+if(a)
+    b = true;
+else
+    b = false;

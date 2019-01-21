@@ -1,0 +1,32 @@
+//simple
+if(a) ;
+
+//complet
+if(true) {
+    a = b;
+    b = a;
+}
+
+//else simple
+if(false) {
+
+} else
+    c = d;
+
+//else complet
+if(test) {
+} else {
+}
+
+//concatenation
+
+if(a) {
+
+} else if (b){
+
+} else {
+
+}
+
+//imbrication
+if(a) if(b) if(c) {} else ;

@@ -1,0 +1,23 @@
+//expression booléen
+//expressions simples
+a = true;
+b = false;
+
+c = true || false;
+d = c && true;
+
+//comparaison
+
+e = 3 > d;
+f = 2 < e || d <= c || b >= a;
+
+g = 5 == 4;
+h = oct / 31 != dec / 25;
+// not
+i = !!h;
+j = !!!!i || !!h && !g;
+
+// parenthèse
+
+k = (true || false) && (2 != a);
+l = oct *(31) == dec *(25);

@@ -1,0 +1,4 @@
+//stmt dans la condition
+if(a = 2) {
+    a = 2;
+}

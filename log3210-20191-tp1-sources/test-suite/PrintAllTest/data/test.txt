@@ -1,0 +1,5 @@
+//vous pouvez tester votre arbre complet avec ce fichier
+
+//ce test ne sera jamais valide puisque l'arbre résultant dépend de l'expression tester;
+
+a = a + 1 + bool;

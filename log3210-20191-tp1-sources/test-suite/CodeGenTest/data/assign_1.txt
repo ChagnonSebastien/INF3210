@@ -1,0 +1,14 @@
+
+//simple
+a = b;
+
+//expression
+
+b = c + d * e - g / h || i && j < -k * -l && !true && ! false;
+
+//assignation a des mots qui ressemblent a des mots réservés
+truet = fals;
+falsy = truthy;
+truet = whilet;
+whilet = 1;
+if1 = while1;
