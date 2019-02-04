@@ -3,6 +3,7 @@ package analyzer.visitors;
 import analyzer.SemantiqueError;
 import analyzer.ast.*;
 
+import javax.xml.crypto.Data;
 import java.io.PrintWriter;
 import java.util.HashMap;
 
@@ -62,13 +63,22 @@ public class SemantiqueVisitor implements ParserVisitor {
      */
     @Override
     public Object visit(ASTDeclaration node, Object data) {
-        node.childrenAccept(this, data);
+
+        for (int i = 0 ; i < node.jjtGetNumChildren(); i++) {
+            if (SymbolTable.containsKey(((ASTIdentifier) node.jjtGetChild(0)).getValue()))
+                throw new SemantiqueError("Invalid type in assignment");
+
+            SymbolTable.put(((ASTIdentifier) node.jjtGetChild(0)).getValue(), node.getValue().equals("num") ? VarType.Number : VarType.Bool);
+        }
+
         return null;
     }
 
     @Override
     public Object visit(ASTBlock node, Object data) {
         node.childrenAccept(this, data);
+
+
         return null;
     }
 
@@ -84,13 +94,13 @@ public class SemantiqueVisitor implements ParserVisitor {
      */
     @Override
     public Object visit(ASTIfStmt node, Object data) {
-        node.childrenAccept(this, data);
+        node.childrenAccept(this, "bool");
         return null;
     }
 
     @Override
     public Object visit(ASTWhileStmt node, Object data) {
-        node.childrenAccept(this, data);
+        node.childrenAccept(this, "bool");
         return null;
     }
 
@@ -99,7 +109,20 @@ public class SemantiqueVisitor implements ParserVisitor {
      */
     @Override
     public Object visit(ASTAssignStmt node, Object data) {
-        node.childrenAccept(this, data);
+
+        /*
+        System.out.println(">>>>>>");
+        System.out.println(((ASTIdentifier)node.jjtGetChild(0)).getValue());
+        for (int i = 0 ; i < ((ASTBoolExpr)((ASTExpr)node.jjtGetChild(1)).jjtGetChild(0)).jjtGetNumChildren(); i++) {
+            System.out.println(((ASTBoolExpr)((ASTExpr)node.jjtGetChild(1)).jjtGetChild(0)).jjtGetChild(i).getClass().getName());
+        }
+        System.out.println("<<<<<<<");
+        */
+
+        if (!SymbolTable.containsKey(((ASTIdentifier)node.jjtGetChild(0)).getValue()))
+            throw new SemantiqueError("Invalid use of undefined Identifier " + ((ASTIdentifier)node.jjtGetChild(0)).getValue());
+
+        node.childrenAccept(this, SymbolTable.get(((ASTIdentifier)node.jjtGetChild(0)).getValue()) == VarType.Bool ? "bool" : "num");
         return null;
     }
 
@@ -107,6 +130,7 @@ public class SemantiqueVisitor implements ParserVisitor {
     public Object visit(ASTExpr node, Object data){
         //Il est normal que tous les noeuds jusqu'à expr retourne un type.
         node.childrenAccept(this, data);
+        // getValue -> null
         return null;
     }
 
@@ -121,6 +145,13 @@ public class SemantiqueVisitor implements ParserVisitor {
         les opérateurs == et != peuvent être utilisé pour les nombres et les booléens, mais il faut que le type soit le même
         des deux côté de l'égalité/l'inégalité.
         */
+
+        if (node.jjtGetNumChildren() > 1) {
+            if (data == VarType.Number)
+                throw new SemantiqueError("Invalid type in expression got " + data + " was expecting " + VarType.Bool);
+
+        }
+
         node.childrenAccept(this, data);
         return null;
     }
@@ -159,8 +190,8 @@ public class SemantiqueVisitor implements ParserVisitor {
 
     si il n'y a pas d'opérande, ne rien faire.
     si il y a une (ou plus) opérande, ils faut vérifier le type.
-
     */
+
     @Override
     public Object visit(ASTNotExpr node, Object data) {
         node.childrenAccept(this, data);
@@ -180,18 +211,43 @@ public class SemantiqueVisitor implements ParserVisitor {
      */
     @Override
     public Object visit(ASTGenValue node, Object data) {
-        node.childrenAccept(this, data);
+        if (data.toString().equals("bool")) {
+            if (node.jjtGetChild(0) instanceof ASTIntValue)
+                throw new SemantiqueError("Invalid type in condition");
+
+            if (node.jjtGetChild(0) instanceof ASTIdentifier &&
+                    SymbolTable.get(((ASTIdentifier)node.jjtGetChild(0)).getValue()) == VarType.Number )
+                throw new SemantiqueError("Invalid type in condition");
+        }
+
+        if (data.toString().equals("num")) {
+            if (node.jjtGetChild(0) instanceof ASTBoolValue)
+                throw new SemantiqueError("Invalid type in condition");
+
+            if (node.jjtGetChild(0) instanceof ASTIdentifier &&
+                    SymbolTable.get(((ASTIdentifier)node.jjtGetChild(0)).getValue()) == VarType.Bool )
+                throw new SemantiqueError("Invalid type in condition");
+        }
+
+        node.childrenAccept(this, "GenValue");
         return null;
     }
 
 
     @Override
     public Object visit(ASTBoolValue node, Object data) {
+        if (data instanceof DataStruct)
+            ((DataStruct)data).checkType(VarType.Bool);
+
         return null;
     }
 
     @Override
     public Object visit(ASTIdentifier node, Object data) {
+        if (data.toString().equals("GenValue"))
+            if (!SymbolTable.containsKey(node.getValue()))
+                throw new SemantiqueError("Invalid use of undefined Identifier " + node.getValue());
+
         return null;
     }
 
