@@ -1,0 +1,13 @@
+Declaration
+num a;
+num b;
+num c;
+EndDeclaration
+
+//number expr
+
+a = 1 + 2 * 3 - 4 / -6;
+
+b = -2;
+
+c = 3 + 3 + 3;

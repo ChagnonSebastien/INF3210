@@ -1,0 +1,6 @@
+Declaration
+num a;
+EndDeclaration
+//number with boolean
+
+a = -!1;

@@ -1,0 +1,7 @@
+Declaration
+num a;
+EndDeclaration
+
+//boolean with arithmetique
+
+a = true + 2;

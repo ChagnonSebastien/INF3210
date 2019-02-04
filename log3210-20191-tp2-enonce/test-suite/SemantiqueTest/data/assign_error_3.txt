@@ -1,0 +1,6 @@
+Declaration
+bool a;
+EndDeclaration
+
+//use of undefined var b;
+a = b;

@@ -1,0 +1,4 @@
+
+
+//error in condition (if)
+if(1+1) ;
