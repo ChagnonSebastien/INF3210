@@ -1,1 +1,1 @@
-Invalid type in expression got Bool and Bool was expecting Number
+Invalid type in expression got Bool was expecting Number
