@@ -5,8 +5,8 @@ import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import java.io.PrintWriter;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
-
 
 /**
  * Created: 19-02-15
@@ -51,7 +51,15 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
 
     @Override
     public Object visit(ASTProgram node, Object data)  {
-        node.childrenAccept(this, null);
+        String SNext = genLabel();
+
+        // Initialisation
+        Map<String, String> SChildMap = new HashMap<>();
+        SChildMap.put("SNext", SNext);
+
+        // Execution
+        node.jjtGetChild(node.jjtGetNumChildren() - 1).jjtAccept(this, SChildMap);
+        m_writer.println(SNext);
         return null;
     }
 
@@ -75,13 +83,32 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
 
     @Override
     public Object visit(ASTBlock node, Object data) {
-        node.childrenAccept(this, null);
-        return null;
+        Map<String, String> parentMap = (HashMap<String, String>) data;
+
+        for(int i = 0; i < node.jjtGetNumChildren() - 1; i++){
+            String SiNext = genLabel();
+
+            // Initialisation
+            Map<String, String> SiChildMap = new HashMap<>();
+            SiChildMap.put("SNext", SiNext);
+
+            // Execution
+            node.jjtGetChild(i).jjtAccept(this, SiChildMap);
+            m_writer.println(SiNext);
+        }
+
+        // Initialisation
+        Map<String, String> SnChildMap = new HashMap<>();
+        SnChildMap.put("SNext", parentMap.get("SNext"));
+
+        // Execution
+        node.jjtGetChild(node.jjtGetNumChildren() - 1).jjtAccept(this, SnChildMap);
+        return 10000;
     }
 
     @Override
     public Object visit(ASTStmt node, Object data) {
-        node.childrenAccept(this, null);
+        node.childrenAccept(this, data);
         return null;
     }
 
@@ -90,13 +117,71 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
      */
     @Override
     public Object visit(ASTIfStmt node, Object data) {
-        node.childrenAccept(this, data);
+        Map<String, String> parentMap = (HashMap<String, String>) data;
+
+        if(node.jjtGetNumChildren() == 2){
+            String BTrue = genLabel();
+
+            // Initialisation
+            Map<String, String> BChildMap = new HashMap<>();
+            BChildMap.put("BTrue", BTrue);
+            BChildMap.put("BFalse", parentMap.get("SNext"));
+
+            Map<String, String> SChildMap = new HashMap<>();
+            SChildMap.put("SNext", parentMap.get("SNext"));
+
+            // Ecriture
+            node.jjtGetChild(0).jjtAccept(this, BChildMap);
+            m_writer.println(BTrue);
+            node.jjtGetChild(1).jjtAccept(this, SChildMap);
+        }
+        else {
+            String BTrue = genLabel();
+            String BFalse = genLabel();
+
+            // Initialisation
+            Map<String, String> BChildMap = new HashMap<>();
+            BChildMap.put("BTrue", BTrue);
+            BChildMap.put("BFalse", BFalse);
+
+            Map<String, String> S1ChildMap = new HashMap<>();
+            S1ChildMap.put("SNext", parentMap.get("SNext"));
+
+            Map<String, String> S2ChildMap = new HashMap<>();
+            S2ChildMap.put("SNext", parentMap.get("SNext"));
+
+            // Ecriture
+            node.jjtGetChild(0).jjtAccept(this, BChildMap);
+            m_writer.println(BTrue);
+            node.jjtGetChild(1).jjtAccept(this, S1ChildMap);
+            m_writer.println("goto " + parentMap.get("SNext"));
+            m_writer.println(BFalse);
+            node.jjtGetChild(2).jjtAccept(this, S2ChildMap);
+        }
         return null;
     }
 
     @Override
     public Object visit(ASTWhileStmt node, Object data) {
-        node.childrenAccept(this, data);
+        Map<String, String> parentMap = (HashMap<String, String>) data;
+
+        String Begin = genLabel();
+        String BTrue = genLabel();
+
+        // Initialisation
+        Map<String, String> BChildMap = new HashMap<>();
+        BChildMap.put("BTrue", BTrue);
+        BChildMap.put("BFalse", parentMap.get("SNext"));
+
+        Map<String, String> SChildMap = new HashMap<>();
+        SChildMap.put("SNext", "SNext");
+
+        // Ecriture
+        m_writer.println(Begin);
+        node.jjtGetChild(0).jjtAccept(this, BChildMap);
+        m_writer.println(BTrue);
+        node.jjtGetChild(1).jjtAccept(this, SChildMap);
+        m_writer.println("goto " + Begin);
         return null;
     }
 
@@ -167,7 +252,7 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
      *  //end if
      *
      *
-     *  Il faut donc dès le départ vérifier dans la table de symbole le type de la variable à gauche, et généré du
+     *  Il faut donc dès le départ vérifier dans la table de symbole le type de la variable à gauche, et générer du
      *  code différent selon ce type.
      *
      *  Pour avoir l'id de la variable de gauche de l'assignation, il peut être plus simple d'aller chercher la valeur
@@ -184,12 +269,14 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
      *  la valeur.
      *
      *  Il est normal (et probablement inévitable concidérant la structure de l'arbre)
-     *  de généré inutilement des labels (ou des variables temporaire) qui ne sont pas utilisé ni imprimé dans le code résultant.
+     *  de générer inutilement des labels (ou des variables temporaire) qui ne sont pas utilisé ni imprimé dans le code résultant.
      */
     @Override
     public Object visit(ASTAssignStmt node, Object data) {
         String id = ((ASTIdentifier) node.jjtGetChild(0)).getValue();
-        node.jjtGetChild(1).jjtAccept(this, data);
+        Map<String, String> childMap = (HashMap<String, String>) node.jjtGetChild(1).jjtAccept(this, data);
+
+        m_writer.println(id + " = " + childMap.get("EAddr"));
         return null;
     }
 
@@ -209,26 +296,50 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
     la taille de ops sera toujours 1 de moins que la taille de jjtGetNumChildren
      */
     public String exprCodeGen(SimpleNode node, Object data, Vector<String> ops) {
+        String EAddr = genId();
+        Map<String, String> E1childMap = (HashMap<String, String>) node.jjtGetChild(0).jjtAccept(this, data);
+        Map<String, String> E2childMap = (HashMap<String, String>) node.jjtGetChild(1).jjtAccept(this, data);
+
+        m_writer.println(EAddr + " = " + E1childMap.get("EAddr") + " " + ops.get(0) + " " + E2childMap.get("EAddr"));
+//        for(int i = 0; i<ops.size(); i++)
+
         node.childrenAccept(this, data);
-        return null;
+
+        return EAddr;
     }
 
     @Override
     public Object visit(ASTAddExpr node, Object data) {
-        return exprCodeGen(node, data, node.getOps());
+        if(node.jjtGetNumChildren() == 1) {
+            return node.jjtGetChild(0).jjtAccept(this, data);
+        }
+        Map<String, String> returnMap = new HashMap<>();
+        returnMap.put("EAddr", exprCodeGen(node, data, node.getOps()));
+        return returnMap;
     }
 
     @Override
     public Object visit(ASTMulExpr node, Object data) {
-        return exprCodeGen(node, data, node.getOps());
+        if(node.jjtGetNumChildren() == 1) {
+            return node.jjtGetChild(0).jjtAccept(this, data);
+        }
+        Map<String, String> returnMap = new HashMap<>();
+        returnMap.put("EAddr", exprCodeGen(node, data, node.getOps()));
+        return returnMap;
     }
 
     //UnaExpr est presque pareil au deux précédente. la plus grosse différence est qu'il ne va pas
     //chercher un deuxième noeud enfant pour avoir une valeur puisqu'il s'agit d'une opération unaire.
     @Override
     public Object visit(ASTUnaExpr node, Object data) {
+        String EAddr = genId();
+        Map<String, String> EchildMap = (HashMap<String, String>) node.jjtGetChild(1).jjtAccept(this, data);
         node.jjtGetChild(0).jjtAccept(this, data);
-        return null;
+        m_writer.println(EAddr + " = -" + EchildMap.get("EAddr"));
+
+        Map<String, String> returnMap = new HashMap<>();
+        returnMap.put("EAddr", EAddr);
+        return returnMap;
     }
 
     //expression logique
@@ -237,13 +348,38 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
 
     Rappel, dans le langague, le OU et le ET on la même priorité, et sont associatif à droite par défaut.
     ainsi :
-    "a = a || || a2 || b && c || d" est interprété comme "a = a || a2 || (b && (c || d))"
+    "a = a || a2 || b && c || d" est interprété comme "a = a || a2 || (b && (c || d))"
 
     Cette fonction est parmis les plus complexes, en particulier si on prend en compte la technique du "fall".
      */
     @Override
     public Object visit(ASTBoolExpr node, Object data) {
-        return node.childrenAccept(this, data);
+        Map<String, String> parentMap = (HashMap<String, String>) data;
+
+        for(int i = 0; i < node.getOps().size() - 1; i++){
+            // Initialisation
+            Map<String, String> BChildMap = new HashMap<>();
+
+            String BTemp = genLabel();
+            if(node.getOps().get(i) == "&&"){
+                BChildMap.put("BFalse", parentMap.get("BFalse"));
+                BChildMap.put("BTrue", BTemp);
+            }
+            else {
+                BChildMap.put("BTrue", parentMap.get("BTrue"));
+                BChildMap.put("BFalse", BTemp);
+            }
+
+            // Ecriture
+            node.jjtGetChild(i).jjtAccept(this, BChildMap);
+            m_writer.println(BTemp);
+        }
+        Map<String, String> BChildMap = new HashMap<>();
+        BChildMap.put("BFalse", parentMap.get("BFalse"));
+        BChildMap.put("BTrue", parentMap.get("BTrue"));
+        node.jjtGetChild(node.jjtGetNumChildren() - 1).jjtAccept(this, BChildMap);
+
+        return null;
     }
 
 
@@ -282,7 +418,6 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
             //genCodeRelTestJump(B, test);
         }
         return null;
-
     }
 
 
