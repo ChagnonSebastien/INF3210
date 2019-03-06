@@ -1,0 +1,38 @@
+goto _L0
+_L3
+goto _L1
+_L0
+a = 1
+goto _L2
+_L1
+a = 0
+_L2
+goto _L4
+_L7
+if a == 1 goto _L4
+goto _L5
+_L4
+b = 1
+goto _L6
+_L5
+b = 0
+_L6
+if a == 1 goto _L11
+goto _L9
+_L11
+if b == 1 goto _L8
+goto _L9
+_L8
+c = 1
+goto _L10
+_L9
+c = 0
+_L10
+_t0 = 1 + 2
+_t1 = _t0 + 3
+d = _t1
+_t2 = d * 1
+e = _t2
+_t3 = - d
+_t4 = e - _t3
+f = _t4

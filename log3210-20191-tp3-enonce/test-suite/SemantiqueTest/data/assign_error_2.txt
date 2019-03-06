@@ -1,0 +1,2 @@
+//use of undefined var b;
+b = 1;

@@ -1,0 +1,24 @@
+ifFalse a > 5 goto _L0
+_L1
+a = 1
+ifFalse a < 5 goto _L5
+goto _L6
+_L5
+_t2 = a + 1
+a = _t2
+_L6
+_L0
+ifFalse b == 1 goto _L10
+_t3 = a + 10
+a = _t3
+goto _L11
+_L10
+_t4 = a * 2
+a = _t4
+_L11
+_L12
+ifFalse a > 0 goto _L13
+_t6 = a - 1
+a = _t6
+goto _L12
+_L13

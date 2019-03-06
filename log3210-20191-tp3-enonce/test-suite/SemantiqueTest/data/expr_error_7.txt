@@ -1,0 +1,6 @@
+Declaration
+bool a;
+EndDeclaration
+
+//comparison of boolean
+a = true < false;

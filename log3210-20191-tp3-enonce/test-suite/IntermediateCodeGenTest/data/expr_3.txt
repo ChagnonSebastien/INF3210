@@ -1,0 +1,23 @@
+Declaration
+bool a;
+bool b;
+bool c;
+num d;
+num e;
+num f;
+EndDeclaration
+
+//expression with variable
+
+a = true || false;
+
+b = true || a;
+
+c = a && b;
+
+
+d = 1 + 2 + 3;
+
+e = d * 1;
+
+f = e - -d;

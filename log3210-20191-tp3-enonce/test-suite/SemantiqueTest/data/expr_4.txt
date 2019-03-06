@@ -1,0 +1,19 @@
+Declaration
+bool a;
+bool b;
+bool c;
+bool d;
+bool e;
+EndDeclaration
+//expression avec des comparaison
+
+
+a = 3 > 2;
+
+b = true || -1 <= 2 + 2;
+
+c = false == false;
+
+d = 5 == 2 + 3;
+
+e = a == b;

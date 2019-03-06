@@ -1,0 +1,10 @@
+Declaration
+num a;
+bool a;
+EndDeclaration
+
+
+//number with boolean
+a = 1;
+
+b = a || true;

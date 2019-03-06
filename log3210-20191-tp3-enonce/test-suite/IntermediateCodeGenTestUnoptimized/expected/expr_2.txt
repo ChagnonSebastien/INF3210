@@ -1,0 +1,27 @@
+goto _L0
+_L3
+goto _L1
+_L0
+a = 1
+goto _L2
+_L1
+a = 0
+_L2
+goto _L5
+_L4
+b = 1
+goto _L6
+_L5
+b = 0
+_L6
+goto _L10
+_L10
+goto _L7
+_L11
+goto _L8
+_L7
+c = 1
+goto _L9
+_L8
+c = 0
+_L9
