@@ -1,7 +1,6 @@
 package analyzer.visitors;
 
 import analyzer.ast.*;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import java.io.PrintWriter;
 import java.util.HashMap;
@@ -51,6 +50,9 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
 
     @Override
     public Object visit(ASTProgram node, Object data)  {
+        for (int i = 0; i < node.jjtGetNumChildren() - 1; i++)
+            node.jjtGetChild(i).jjtAccept(this, data);
+
         String SNext = genLabel();
 
         // Initialisation
@@ -274,6 +276,7 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
      */
     @Override
     public Object visit(ASTAssignStmt node, Object data) {
+
         String id = ((ASTIdentifier) node.jjtGetChild(0)).getValue();
         VarType type = SymbolTable.get(id);
         if(type == VarType.Number){
@@ -282,13 +285,12 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
         }
         else {
             Map<String, String> BchildMap =  new HashMap<>();
-            String BTrue = genId();
-            String BFalse = genId();
-            String SNext = genId();
+            String BTrue = genLabel();
+            String BFalse = genLabel();
+            String SNext = genLabel();
 
             BchildMap.put("BTrue", BTrue);
             BchildMap.put("BFalse", BFalse);
-            BchildMap.put("SNext", SNext);
 
             node.jjtGetChild(1).jjtAccept(this, BchildMap);
             m_writer.println(BTrue);
@@ -319,16 +321,18 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
     la taille de ops sera toujours 1 de moins que la taille de jjtGetNumChildren
      */
     public String exprCodeGen(SimpleNode node, Object data, Vector<String> ops) {
-        String EAddr = genId();
-        Map<String, String> E1childMap = (HashMap<String, String>) node.jjtGetChild(0).jjtAccept(this, data);
-        Map<String, String> E2childMap = (HashMap<String, String>) node.jjtGetChild(1).jjtAccept(this, data);
 
-        m_writer.println(EAddr + " = " + E1childMap.get("EAddr") + " " + ops.get(0) + " " + E2childMap.get("EAddr"));
-//        for(int i = 0; i<ops.size(); i++)
+        Map<String, String> EchildMap = (HashMap<String, String>) node.jjtGetChild(0).jjtAccept(this, data);
+        String lastResult = EchildMap.get("EAddr");
 
-        node.childrenAccept(this, data);
+        for (int i = 1; i < node.jjtGetNumChildren(); i++) {
+            EchildMap = (HashMap<String, String>) node.jjtGetChild(i).jjtAccept(this, data);
+            String EAddr = genId();
+            m_writer.println(EAddr + " = " + lastResult + " " + ops.get(i - 1) + " " + EchildMap.get("EAddr"));
+            lastResult = EAddr;
+        }
 
-        return EAddr;
+        return lastResult;
     }
 
     @Override
@@ -336,6 +340,7 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
         if(node.jjtGetNumChildren() == 1) {
             return node.jjtGetChild(0).jjtAccept(this, data);
         }
+
         Map<String, String> returnMap = new HashMap<>();
         returnMap.put("EAddr", exprCodeGen(node, data, node.getOps()));
         return returnMap;
@@ -384,12 +389,12 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
     public Object visit(ASTBoolExpr node, Object data) {
         Map<String, String> parentMap = (HashMap<String, String>) data;
 
-        for(int i = 0; i < node.getOps().size() - 1; i++){
+        for(int i = 0; i < node.getOps().size(); i++){
             // Initialisation
             Map<String, String> BChildMap = new HashMap<>();
 
             String BTemp = genLabel();
-            if(node.getOps().get(i) == "&&"){
+            if(node.getOps().get(i).equals("&&")){
                 BChildMap.put("BFalse", parentMap.get("BFalse"));
                 BChildMap.put("BTrue", BTemp);
             }
@@ -405,9 +410,7 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
         Map<String, String> BChildMap = new HashMap<>();
         BChildMap.put("BFalse", parentMap.get("BFalse"));
         BChildMap.put("BTrue", parentMap.get("BTrue"));
-        node.jjtGetChild(node.jjtGetNumChildren() - 1).jjtAccept(this, BChildMap);
-
-        return null;
+        return node.jjtGetChild(node.jjtGetNumChildren() - 1).jjtAccept(this, BChildMap);
     }
 
 
@@ -439,35 +442,59 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
      */
     @Override
     public Object visit(ASTCompExpr node, Object data) {
-        Map<String, String> parentMap = (HashMap<String, String>) data;
-        Map<String, String> EchildMap1 = (HashMap<String, String>) node.jjtGetChild(0).jjtAccept(this, data);
-        if(node.jjtGetNumChildren() == 2) {
-            if(EchildMap1 != null){
-                Map<String, String> EchildMap2 = (HashMap<String, String>) node.jjtGetChild(1).jjtAccept(this, data);
-                m_writer.println("if " + EchildMap1.get("EAddr") + " " + node.getValue() + " " + EchildMap2.get("EAddr") + " goto " + parentMap.get("BTrue"));
-                m_writer.println("goto " + parentMap.get("BFalse"));
-            }
-            else {
-                Map<String, String> BchildMap =  new HashMap<>();
-                String BTrue = genId();
-                String BFalse = genId();
-                String SNext = genId();
-
-                BchildMap.put("BTrue", BTrue);
-                BchildMap.put("BFalse", BFalse);
-                BchildMap.put("SNext", SNext);
-
-                node.jjtGetChild(1).jjtAccept(this, BchildMap);
-                m_writer.println(BTrue);
-                m_writer.println("goto " + parentMap.get("BTrue"));
-                m_writer.println("goto " + SNext);
-
-                m_writer.println(BFalse);
-                m_writer.println("goto " + parentMap.get("BFalse"));
-                m_writer.println(SNext);
-            }
+        if(node.jjtGetNumChildren() == 1) {
+            return node.jjtGetChild(0).jjtAccept(this, data);
         }
-        return EchildMap1;
+
+        Map<String, String> parentMap = (HashMap<String, String>) data;
+
+        String id1 = genId();
+        Map<String, String> B1childMap =  new HashMap<>();
+        String B1True = genLabel();
+        String B1False = genLabel();
+        String S1Next = genLabel();
+
+        B1childMap.put("BTrue", B1True);
+        B1childMap.put("BFalse", B1False);
+
+        Map<String, String> EchildMap1 = (HashMap<String, String>) node.jjtGetChild(0).jjtAccept(this, B1childMap);
+
+        if(EchildMap1 != null){
+            Map<String, String> EchildMap2 = (HashMap<String, String>) node.jjtGetChild(1).jjtAccept(this, data);
+            m_writer.println("if " + EchildMap1.get("EAddr") + " " + node.getValue() + " " + EchildMap2.get("EAddr") + " goto " + parentMap.get("BTrue"));
+            m_writer.println("goto " + parentMap.get("BFalse"));
+        }
+        else {
+            m_writer.println(B1True);
+            m_writer.println(id1 + " = 1");
+            m_writer.println("goto " + S1Next);
+
+            m_writer.println(B1False);
+            m_writer.println(id1 + " = 0");
+            m_writer.println(S1Next);
+
+            String id2 = genId();
+            Map<String, String> B2childMap =  new HashMap<>();
+            String B2True = genLabel();
+            String B2False = genLabel();
+            String S2Next = genLabel();
+
+            B2childMap.put("BTrue", B2True);
+            B2childMap.put("BFalse", B2False);
+
+            node.jjtGetChild(1).jjtAccept(this, B2childMap);
+            m_writer.println(B2True);
+            m_writer.println(id2 + " = 1");
+            m_writer.println("goto " + S2Next);
+
+            m_writer.println(B2False);
+            m_writer.println(id2 + " = 0");
+            m_writer.println(S2Next);
+
+            m_writer.println("if " + id1 + " " + node.getValue() + " " + id2 + " goto " + parentMap.get("BTrue"));
+            m_writer.println("goto " + parentMap.get("BFalse"));
+        }
+        return null;
     }
 
 
@@ -478,30 +505,18 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
      */
     @Override
     public Object visit(ASTNotExpr node, Object data) {
-        int size = node.getOps().size();
         Map<String, String> parentMap = (HashMap<String, String>) data;
-        Map<String, String> BchildMap =  new HashMap<>();
-        String BTrue = genId();
-        String BFalse = genId();
-        String SNext = genId();
 
-        BchildMap.put("BTrue", BTrue);
-        BchildMap.put("BFalse", BFalse);
-        BchildMap.put("SNext", SNext);
+        int size = node.getOps().size();
+        if (size % 2 == 0) {
+            return node.jjtGetChild(0).jjtAccept(this, data);
+        } else {
+            Map<String, String> BchildMap =  new HashMap<>();
+            BchildMap.put("BTrue", parentMap.get("BFalse"));
+            BchildMap.put("BFalse", parentMap.get("BTrue"));
+            BchildMap.put("SNext", parentMap.get("SNext"));
+            return node.jjtGetChild(0).jjtAccept(this, BchildMap);
 
-        Map<String, String> returnMap = (HashMap<String, String>) node.jjtGetChild(0).jjtAccept(this, BchildMap);
-        if(returnMap == null){
-            m_writer.println(BTrue);
-            m_writer.println("goto " + parentMap.get(size % 2 == 0 ? "BTrue" : "BFalse"));
-            m_writer.println("goto " + SNext);
-
-            m_writer.println(BFalse);
-            m_writer.println("goto " + parentMap.get(size % 2 == 0 ? "BFalse": "BTrue"));
-            m_writer.println(SNext);
-            return null;
-        }
-        else {
-            return returnMap;
         }
     }
 
