@@ -417,10 +417,10 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
     //cette fonction privé est utile parce que le code pour généré le goto pour les opérateurs de comparaison est le même
     //que celui pour le référencement de variable booléenne.
     //le code est très simple avant l'optimisation, mais deviens un peu plus long avec l'optimisation.
-    private void genCodeRelTestJump(BoolLabel B, String test) {
+    private void genCodeRelTestJump(String labelTrue, String labelfalse, String test) {
         //version sans optimisation.
-        m_writer.println("if " + test + " goto " + B.lTrue);
-        m_writer.println("goto " + B.lFalse);
+        m_writer.println("if " + test + " goto " + labelTrue);
+        m_writer.println("goto " + labelfalse);
     }
 
 
@@ -461,8 +461,7 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
 
         if(EchildMap1 != null){
             Map<String, String> EchildMap2 = (HashMap<String, String>) node.jjtGetChild(1).jjtAccept(this, data);
-            m_writer.println("if " + EchildMap1.get("EAddr") + " " + node.getValue() + " " + EchildMap2.get("EAddr") + " goto " + parentMap.get("BTrue"));
-            m_writer.println("goto " + parentMap.get("BFalse"));
+            genCodeRelTestJump(parentMap.get("BTrue"), parentMap.get("BFalse"), EchildMap1.get("EAddr") + " " + node.getValue() + " " + EchildMap2.get("EAddr"));
         }
         else {
             m_writer.println(B1True);
@@ -491,8 +490,7 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
             m_writer.println(id2 + " = 0");
             m_writer.println(S2Next);
 
-            m_writer.println("if " + id1 + " " + node.getValue() + " " + id2 + " goto " + parentMap.get("BTrue"));
-            m_writer.println("goto " + parentMap.get("BFalse"));
+            genCodeRelTestJump(parentMap.get("BTrue"), parentMap.get("BFalse"), id1 + " " + node.getValue() + " " + id2);
         }
         return null;
     }
@@ -549,9 +547,7 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
     public Object visit(ASTIdentifier node, Object data) {
         Map<String, String> parentMap = (HashMap<String, String>) data;
         if(SymbolTable.get(node.getValue()) == VarType.Bool) {
-            String test = node.getValue() + " == 1";
-            m_writer.println("if " + test + " goto " + parentMap.get("BTrue"));
-            m_writer.println("goto " + parentMap.get("BFalse"));
+            genCodeRelTestJump(parentMap.get("BTrue"), parentMap.get("BFalse"), node.getValue() + " == 1");
             return null;
         }
         Map<String, String> returnMap = new HashMap<>();
