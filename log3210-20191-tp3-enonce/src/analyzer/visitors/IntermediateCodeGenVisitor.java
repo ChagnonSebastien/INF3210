@@ -61,7 +61,6 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
 
         // Execution
         node.jjtGetChild(node.jjtGetNumChildren() - 1).jjtAccept(this, SChildMap);
-        m_writer.println(SNext);
         return null;
     }
 
@@ -96,7 +95,6 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
 
             // Execution
             node.jjtGetChild(i).jjtAccept(this, SiChildMap);
-            m_writer.println(SiNext);
         }
 
         // Initialisation
@@ -123,11 +121,9 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
         Map<String, String> parentMap = (HashMap<String, String>) data;
 
         if(node.jjtGetNumChildren() == 2){
-            String BTrue = genLabel();
 
             // Initialisation
             Map<String, String> BChildMap = new HashMap<>();
-            BChildMap.put("BTrue", BTrue);
             BChildMap.put("BFalse", parentMap.get("SNext"));
 
             Map<String, String> SChildMap = new HashMap<>();
@@ -135,16 +131,14 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
 
             // Ecriture
             node.jjtGetChild(0).jjtAccept(this, BChildMap);
-            m_writer.println(BTrue);
             node.jjtGetChild(1).jjtAccept(this, SChildMap);
+            m_writer.println(parentMap.get("SNext"));
         }
         else {
-            String BTrue = genLabel();
             String BFalse = genLabel();
 
             // Initialisation
             Map<String, String> BChildMap = new HashMap<>();
-            BChildMap.put("BTrue", BTrue);
             BChildMap.put("BFalse", BFalse);
 
             Map<String, String> S1ChildMap = new HashMap<>();
@@ -155,11 +149,11 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
 
             // Ecriture
             node.jjtGetChild(0).jjtAccept(this, BChildMap);
-            m_writer.println(BTrue);
             node.jjtGetChild(1).jjtAccept(this, S1ChildMap);
             m_writer.println("goto " + parentMap.get("SNext"));
             m_writer.println(BFalse);
             node.jjtGetChild(2).jjtAccept(this, S2ChildMap);
+            m_writer.println(parentMap.get("SNext"));
         }
         return null;
     }
@@ -169,11 +163,9 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
         Map<String, String> parentMap = (HashMap<String, String>) data;
 
         String Begin = genLabel();
-        String BTrue = genLabel();
 
         // Initialisation
         Map<String, String> BChildMap = new HashMap<>();
-        BChildMap.put("BTrue", BTrue);
         BChildMap.put("BFalse", parentMap.get("SNext"));
 
         Map<String, String> SChildMap = new HashMap<>();
@@ -182,9 +174,9 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
         // Ecriture
         m_writer.println(Begin);
         node.jjtGetChild(0).jjtAccept(this, BChildMap);
-        m_writer.println(BTrue);
         node.jjtGetChild(1).jjtAccept(this, SChildMap);
         m_writer.println("goto " + Begin);
+        m_writer.println(parentMap.get("SNext"));
         return null;
     }
 
@@ -393,19 +385,15 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
             // Initialisation
             Map<String, String> BChildMap = new HashMap<>();
 
-            String BTemp = genLabel();
             if(node.getOps().get(i).equals("&&")){
                 BChildMap.put("BFalse", parentMap.get("BFalse"));
-                BChildMap.put("BTrue", BTemp);
             }
             else {
                 BChildMap.put("BTrue", parentMap.get("BTrue"));
-                BChildMap.put("BFalse", BTemp);
             }
 
             // Ecriture
             node.jjtGetChild(i).jjtAccept(this, BChildMap);
-            m_writer.println(BTemp);
         }
         Map<String, String> BChildMap = new HashMap<>();
         BChildMap.put("BFalse", parentMap.get("BFalse"));
@@ -418,9 +406,14 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
     //que celui pour le référencement de variable booléenne.
     //le code est très simple avant l'optimisation, mais deviens un peu plus long avec l'optimisation.
     private void genCodeRelTestJump(String labelTrue, String labelfalse, String test) {
-        //version sans optimisation.
-        m_writer.println("if " + test + " goto " + labelTrue);
-        m_writer.println("goto " + labelfalse);
+        if (labelTrue != null && labelfalse != null) {
+            m_writer.println("if " + test + " goto " + labelTrue);
+            m_writer.println("goto " + labelfalse);
+        } else if (labelTrue != null) {
+            m_writer.println("if " + test + " goto " + labelTrue);
+        } else if (labelfalse != null) {
+            m_writer.println("ifFalse " + test + " goto " + labelfalse);
+        }
     }
 
 
@@ -530,9 +523,9 @@ public class IntermediateCodeGenVisitor implements ParserVisitor {
     @Override
     public Object visit(ASTBoolValue node, Object data) {
         Map<String, String> parentMap = (HashMap<String, String>) data;
-        if (node.getValue())
+        if (node.getValue() && parentMap.get("BTrue") != null)
             m_writer.println("goto " + parentMap.get("BTrue"));
-        else
+        else if (!node.getValue() && parentMap.get("BFalse") != null)
             m_writer.println("goto " + parentMap.get("BFalse"));
         return null;
     }
