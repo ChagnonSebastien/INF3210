@@ -7,10 +7,11 @@ import java.util.*;
 public class PrintMachineCodeVisitor implements ParserVisitor {
 
     private PrintWriter m_writer = null;
-    private List<Vector<String>> aliveInfo = null;
+    private List<List<String>> aliveInfo = null;
     private List<List<String>> registery = null;
     private Map<String, List<String>> memory = null;
     private int regesterySize = 0;
+    private int indexOfTree = 0;
 
     public PrintMachineCodeVisitor(PrintWriter writer) {
         m_writer = writer;
@@ -54,7 +55,9 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
     @Override
     public Object visit(ASTLiveNode node, Object data) {
         ASTOutNode outNode = (ASTOutNode) node.jjtGetChild(1);
-        this.aliveInfo.add(outNode.getLive());
+        this.aliveInfo.add(new ArrayList<>());
+        for (int i = 0; i < outNode.getLive().size() ; i++)
+            this.aliveInfo.get(this.aliveInfo.size() - 1).add(outNode.getLive().get(i));
 
         if (this.memory.size() == 0) {
             ASTInNode inNode = (ASTInNode) node.jjtGetChild(0);
@@ -89,13 +92,20 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
 
     @Override
     public Object visit(ASTStmt node, Object data) {
+
+        System.out.println("===================");
+        System.out.println(memory);
+        System.out.println(registery);
+        System.out.println("===================");
         node.childrenAccept(this, null);
+
         return null;
     }
 
     @Override
     public Object visit(ASTAssignStmt node, Object data) {
-        int index = node.getId();
+        int index = indexOfTree++;
+        System.out.println("Opération n." + index);
         String operation = node.getOp().equals("+") ? "ADD" : "MUL";
 
         String assigned = (String) node.jjtGetChild(0).jjtAccept(this, null);
@@ -124,7 +134,8 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
 
     @Override
     public Object visit(ASTAssignUnaryStmt node, Object data) {
-        int index = node.getId();
+        int index = indexOfTree++;
+        System.out.println("Opération n." + index);
 
         String assigned = (String) node.jjtGetChild(0).jjtAccept(this, null);
         String left = (String) node.jjtGetChild(1).jjtAccept(this, null);
@@ -146,7 +157,8 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
 
     @Override
     public Object visit(ASTAssignDirectStmt node, Object data) {
-        int index = node.getId();
+        int index = indexOfTree++;
+        System.out.println("Opération n." + index);
 
         String assigned = (String) node.jjtGetChild(0).jjtAccept(this, null);
         String left = (String) node.jjtGetChild(1).jjtAccept(this, null);
@@ -164,12 +176,14 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
     public int getReg(String variable, String locked, int opIndex) {
 
         // 1.
+        System.out.println("1.");
         for (int i = 0; i < registery.size(); i++) {
             if (registery.get(i).contains(variable))
                 return i;
         }
 
         // 2.
+        System.out.println("2.");
         reg_loop:
         for (int i = 0; i < registery.size(); i++) {
             if (registery.get(i).size() > 0)
@@ -182,6 +196,7 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
         }
 
         // 3.a.
+        System.out.println("3.a");
         reg_loop:
         for (int i = 0; i < registery.size(); i++) {
             for (int j = 0; j < this.registery.get(i).size(); j++)
@@ -190,11 +205,18 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
 
             this.m_writer.println("LD R" + i + ", " + variable);
 
+
+            for (int j = 0; j < registery.get(i).size(); j++)
+                this.memory.get(this.registery.get(i).get(j)).remove("R" + i);
+            this.registery.get(i).clear();
+            this.registery.get(i).add(variable);
+
             this.memory.get(variable).add("R" + i);
             return i;
         }
 
         // 3.b.
+        System.out.println("3.b");
         reg_loop:
         for (int i = 0; i < registery.size(); i++) {
             if (!this.registery.get(i).contains(variable))
@@ -217,6 +239,7 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
         }
 
         // 3.c.
+        System.out.println("3.c");
         reg_loop:
         for (int i = 0; i < registery.size(); i++) {
             for (int j = 0; j < this.registery.get(i).size(); j++)
@@ -229,6 +252,7 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
         }
 
         // 3.d.
+        System.out.println("3.d");
         reg_loop:
         for (int i = 0; i < registery.size(); i++) {
             for (int j = 0; j < this.registery.get(i).size(); j++)
@@ -256,6 +280,7 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
 
     public int getToReg(String variable, int opIndex, int operande1, int operande2) {
         // 1.
+        System.out.println("TO - 1");
         reg_loop:
         for (int i = 0; i < registery.size(); i++) {
             if (!registery.get(i).contains(variable))
@@ -273,6 +298,8 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
             return i;
         }
 
+
+        System.out.println("TO - 2");
         // 2.
         reg_loop:
         for (int i = 0; i < registery.size(); i++) {
@@ -284,6 +311,7 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
         }
 
 
+        System.out.println("TO - 3");
         reg_loop:
         for (int i = 0; i < registery.size(); i++) {
             if (!registery.get(i).contains(variable))
@@ -302,6 +330,7 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
             }
         }
 
+        System.out.println("TO - 4");
         reg_loop:
         for (int i = 0; i < registery.size(); i++) {
             if (i == operande1 || i == operande2)
@@ -316,6 +345,9 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
                 this.m_writer.println("ST " + variable + ", R" + i);
             }
         }
+
+
+        System.out.println("TO - ERR");
         return -1;
     }
 
