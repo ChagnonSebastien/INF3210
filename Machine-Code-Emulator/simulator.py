@@ -204,7 +204,7 @@ class Simulator:
     def simulate(self, max_time):
         # Prepare the environment for the simulation
         # 3 registers and 256 of memory
-        environment = Environment(3, 256, self.root.labels)
+        environment = Environment(5, 256, self.root.labels)
 
         start_time = time.time()
 

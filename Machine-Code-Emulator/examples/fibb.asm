@@ -52,6 +52,21 @@ CLEAR
 //        b = t;
 
 // TODO:: PUT THE BLOCK 1 THERE!
+LD R0, b
+LD R1, a
+ADD R2, R0, R1
+LD R3, d
+MUL R2, R3, R2
+LD R4, c
+MUL R0, R4, R0
+ADD R0, R2, R0
+LD R1, b
+MUL R1, R3, R1
+LD R3, a
+MUL R2, R4, R3
+ADD R1, R1, R2
+ST b, R0
+ST a, R1
 
 CLEAR
 
@@ -64,12 +79,19 @@ CLEAR
 //      i = i / 2;
 
 // TODO:: PUT THE BLOCK 2 THERE!
-
-// TODO:: This instruction is just a placeholder to let the code end, remove the code below!
-LD R0, i
-DEC R0
-ST i, R0
-// TODO:: Remove the placeholder above of this line!
+LD R0, c
+MUL R1, #2, R0
+LD R2, d
+ADD R1, R1, R2
+MUL R1, R2, R1
+MUL R0, R0, R0
+MUL R2, R2, R2
+ADD R0, R0, R2
+LD R3, i
+DIV R2, R3, #2
+ST c, R0
+ST d, R1
+ST i, R2
 
 CLEAR
 BR beginWhile

@@ -30,6 +30,33 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
         // Visiter les enfants
         node.childrenAccept(this, null);
 
+        System.out.println("===================");
+        System.out.println(memory);
+        System.out.println(registery);
+        System.out.println("=====SAVE=====");
+        for (int i = 0; i < this.registery.size(); i++) {
+            in_Loop:
+            for (int j = 0; j < this.registery.get(i).size(); j++) {
+                String variable = this.registery.get(i).get(j);
+
+                // If the variable is not alive, continue to the next value
+                if (!this.aliveInfo.get(this.aliveInfo.size() - 1).contains(variable))
+                    continue in_Loop;
+
+                // If the variable is already saved in the memory, continue to next value
+                if (this.memory.get(variable).contains(variable))
+                    continue in_Loop;
+
+                // Save the variable in the memory
+                System.out.println("ST " + variable + ", R" + i);
+                m_writer.println("ST " + variable + ", R" + i);
+                this.memory.get(variable).add(variable);
+            }
+        }
+        System.out.println(memory);
+        System.out.println(registery);
+        System.out.println("===================");
+
         m_writer.close();
         return null;
     }
@@ -106,14 +133,17 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
     public Object visit(ASTAssignStmt node, Object data) {
         int index = indexOfTree++;
         System.out.println("Opération n." + index);
-        String operation = node.getOp().equals("+") ? "ADD" : "MUL";
+        String operation = getOppSyntax(node.getOp());
 
         String assigned = (String) node.jjtGetChild(0).jjtAccept(this, null);
         String left = (String) node.jjtGetChild(1).jjtAccept(this, null);
         String right = (String) node.jjtGetChild(2).jjtAccept(this, null);
 
-        int leftRegistery = this.getReg(left, right, index);
-        int rightRegistery = this.getReg(right, left, index);
+        boolean leftInt = isInteger(left);
+        boolean rightInt = isInteger(right);
+
+        int leftRegistery = leftInt ? -1 : this.getReg(left, right, index);
+        int rightRegistery = rightInt ? -1 : this.getReg(right, left, index);
         int result = this.getToReg(assigned, index, leftRegistery, rightRegistery);
 
         for (int i = 0; i < registery.get(result).size(); i++)
@@ -126,7 +156,8 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
         this.registery.get(result).clear();
         this.registery.get(result).add(assigned);
 
-        this.m_writer.println(operation + " R" + result + ", R" + leftRegistery + ", R" + rightRegistery);
+        System.out.println(operation + " R" + result + ", " + (leftInt ? "#" + left : "R" + leftRegistery) + ", " + (rightInt ? "#" + right : "R" + rightRegistery));
+        this.m_writer.println(operation + " R" + result + ", " + (leftInt ? "#" + left : "R" + leftRegistery) + ", " + (rightInt ? "#" + right : "R" + rightRegistery));
 
         this.removeExpired(assigned, result);
         return null;
@@ -149,6 +180,7 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
         this.memory.get(assigned).add("R" + result);
         this.registery.get(result).clear();
         this.registery.get(result).add(assigned);
+        System.out.println("MUL R" + result + ", R" + operande + ", -1");
         this.m_writer.println("MUL R" + result + ", R" + operande + ", -1");
 
         this.removeExpired(assigned, result);
@@ -167,6 +199,7 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
 
         this.memory.put(assigned, new ArrayList<>());
         this.memory.get(assigned).add("R" + operande);
+        this.registery.get(operande).add(assigned);
 
         this.removeExpired(assigned, operande);
         return null;
@@ -190,7 +223,10 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
                 continue reg_loop;
 
             this.registery.get(i).add(variable);
+            System.out.println("LD R" + i + ", " + variable);
             this.m_writer.println("LD R" + i + ", " + variable);
+
+
             this.memory.get(variable).add("R" + i);
             return i;
         }
@@ -199,10 +235,12 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
         System.out.println("3.a");
         reg_loop:
         for (int i = 0; i < registery.size(); i++) {
-            for (int j = 0; j < this.registery.get(i).size(); j++)
-                if (this.memory.get(this.registery.get(i).get(j)).size() < 2 || locked.equals(this.registery.get(i).get(j)))
+            for (int j = 0; j < this.registery.get(i).size(); j++) {
+                if (this.memory.get(this.registery.get(i).get(j)).size() < 2 || (locked != null && locked.equals(this.registery.get(i).get(j))))
                     continue reg_loop;
+            }
 
+            System.out.println("LD R" + i + ", " + variable);
             this.m_writer.println("LD R" + i + ", " + variable);
 
 
@@ -229,10 +267,11 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
                 if (j == index)
                     continue in_loop;
 
-                if (this.memory.get(this.registery.get(i).get(j)).size() < 2 || locked.equals(this.registery.get(i).get(j)))
+                if (this.memory.get(this.registery.get(i).get(j)).size() < 2 || (locked != null && locked.equals(this.registery.get(i).get(j))))
                     continue reg_loop;
             }
 
+            System.out.println("LD R" + i + ", " + variable);
             this.m_writer.println("LD R" + i + ", " + variable);
             this.memory.get(variable).add("R" + i);
             return i;
@@ -243,11 +282,17 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
         reg_loop:
         for (int i = 0; i < registery.size(); i++) {
             for (int j = 0; j < this.registery.get(i).size(); j++)
-                if (this.aliveInfo.get(opIndex).contains(this.registery.get(i).get(j)) || locked.equals(this.registery.get(i).get(j)))
+                if (this.aliveInfo.get(opIndex).contains(this.registery.get(i).get(j)) || (locked != null && locked.equals(this.registery.get(i).get(j))))
                     continue reg_loop;
 
+            for (int j = 0; j < this.registery.get(i).size(); j++)
+                this.memory.get(this.registery.get(i).get(j)).remove("R" + i);
+
+            System.out.println("LD R" + i + ", " + variable);
             this.m_writer.println("LD R" + i + ", " + variable);
             this.memory.get(variable).add("R" + i);
+            this.registery.get(i).clear();
+            this.registery.get(i).add(variable);
             return i;
         }
 
@@ -256,22 +301,26 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
         reg_loop:
         for (int i = 0; i < registery.size(); i++) {
             for (int j = 0; j < this.registery.get(i).size(); j++)
-                if (locked.equals(this.registery.get(i).get(j)))
+                if (locked != null && locked.equals(this.registery.get(i).get(j)))
                     continue reg_loop;
 
             for (int j = 0; j < this.registery.get(i).size(); j++) {
-                String v = this.registery.get(i).get(j);
+                String lovalVariable = this.registery.get(i).get(j);
 
+                if (this.memory.get(lovalVariable).size() == 1 && this.aliveInfo.get(opIndex).contains(lovalVariable)) {
+                    System.out.println("ST " + lovalVariable + ", R" + i);
+                    this.m_writer.println("ST " + lovalVariable + ", R" + i);
+                }
 
-                if (this.memory.get(v).size() < 2)
-                    this.m_writer.println("ST " + variable + ", R" + i);
-
-                this.memory.put(v, new ArrayList<>());
-                this.memory.get(v).add(v);
+                this.memory.put(lovalVariable, new ArrayList<>());
+                this.memory.get(lovalVariable).add(lovalVariable);
             }
 
+            System.out.println("LD R" + i + ", " + variable);
             this.m_writer.println("LD R" + i + ", " + variable);
             this.memory.get(variable).add("R" + i);
+            this.registery.get(i).clear();
+            this.registery.get(i).add(variable);
             return i;
         }
 
@@ -279,7 +328,7 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
     }
 
     public int getToReg(String variable, int opIndex, int operande1, int operande2) {
-        // 1.
+        // Retourne le registre qui contient x et dont les autres varibles dans le registrer ne sont plus vivantes
         System.out.println("TO - 1");
         reg_loop:
         for (int i = 0; i < registery.size(); i++) {
@@ -298,9 +347,8 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
             return i;
         }
 
-
+        // Retourne un registre dont toutes les variables ne sont plus vivantes
         System.out.println("TO - 2");
-        // 2.
         reg_loop:
         for (int i = 0; i < registery.size(); i++) {
             for (int j = 0; j < this.registery.get(i).size(); j++)
@@ -310,7 +358,17 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
             return i;
         }
 
+        // Retourne le registre dont toutes les variables sont déjà en mémoire
+        reg_loop:
+        for (int i = 0; i < registery.size(); i++) {
+            for (int j = 0; j < this.registery.get(i).size(); j++)
+                if (this.memory.get(registery.get(i).get(j)).size() == 1)
+                    continue reg_loop;
 
+            return i;
+        }
+
+        // Retourne le registre qui contient x et sauvegarde les autres variables dans ce registre si elles sont vivantes
         System.out.println("TO - 3");
         reg_loop:
         for (int i = 0; i < registery.size(); i++) {
@@ -319,33 +377,54 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
 
             in_loop:
             for (int j = 0; j < this.registery.get(i).size(); j++) {
-                if (registery.get(i).get(j).equals(variable))
+                String localVariable = registery.get(i).get(j);
+
+                // Do not store the value which will be redefined
+                if (localVariable.equals(variable))
                     continue in_loop;
 
-                if (!this.aliveInfo.get(opIndex).contains(this.registery.get(i).get(j)))
+                // Do not store the value if it's no longer alive
+                if (!this.aliveInfo.get(opIndex).contains(localVariable))
                     continue in_loop;
 
-                this.memory.get(this.registery.get(i).get(j)).add(this.registery.get(i).get(j));
-                this.m_writer.println("ST " + variable + ", R" + i);
+                // Do not store the value if it's already in the memory
+                if (this.memory.get(localVariable).contains(localVariable))
+                    continue in_loop;
+
+                // Save the alive variable in the memory
+                this.memory.get(localVariable).add(localVariable);
+                System.out.println("ST " + localVariable + ", R" + i);
+                this.m_writer.println("ST " + localVariable + ", R" + i);
             }
         }
 
+        // Retourne le premier registre qui n'est pas une opérande de l'inscriction et sauvegarde ses valeurs.
         System.out.println("TO - 4");
         reg_loop:
         for (int i = 0; i < registery.size(); i++) {
+            // Store the result somewhere else than any of the two operandes
             if (i == operande1 || i == operande2)
                 continue reg_loop;
 
             in_loop:
             for (int j = 0; j < this.registery.get(i).size(); j++) {
-                if (!this.aliveInfo.get(opIndex).contains(this.registery.get(i).get(j)))
+                String localVariable = registery.get(i).get(j);
+
+                // Do not store the value if it's no longer alive
+                if (!this.aliveInfo.get(opIndex).contains(localVariable))
                     continue in_loop;
 
-                this.memory.get(this.registery.get(i).get(j)).add(this.registery.get(i).get(j));
-                this.m_writer.println("ST " + variable + ", R" + i);
-            }
-        }
+                // Do not store the value if it's already in the memory
+                if (this.memory.get(localVariable).contains(localVariable))
+                    continue in_loop;
 
+                this.memory.get(localVariable).add(localVariable);
+                System.out.println("ST " + localVariable + ", R" + i);
+                this.m_writer.println("ST " + localVariable + ", R" + i);
+            }
+
+            return i;
+        }
 
         System.out.println("TO - ERR");
         return -1;
@@ -357,9 +436,38 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
             if (i == newRegIndex)
                 continue reg_loop;
 
-            if (registery.get(i).contains(variable))
+            if (registery.get(i).contains(variable)) {
                 registery.get(i).remove(variable);
+                this.memory.get(variable).remove("R" + i);
+            }
         }
+    }
+
+    public String getOppSyntax(String opp) {
+        switch (opp) {
+            case "+":
+                return "ADD";
+            case "*":
+                return "MUL";
+            case "/":
+                return "DIV";
+            case "-":
+                return "SUB";
+            default:
+                return "ERR";
+        }
+    }
+
+    public static boolean isInteger(String s) {
+        try {
+            Integer.parseInt(s);
+        } catch(NumberFormatException e) {
+            return false;
+        } catch(NullPointerException e) {
+            return false;
+        }
+        // only got here if we didn't return false
+        return true;
     }
 
     @Override
