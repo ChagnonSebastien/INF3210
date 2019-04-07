@@ -140,8 +140,8 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
 
         // Get the registery index of the operands
         // If the operands are not in the registery, getReg() loads the values in the memory
-        int leftRegistery = leftInt ? -1 : this.getReg(left, right, index);
-        int rightRegistery = rightInt ? -1 : this.getReg(right, left, index);
+        int leftRegistery = leftInt ? -1 : this.getReg(left, assigned, right, index);
+        int rightRegistery = rightInt ? -1 : this.getReg(right, assigned, left, index);
 
         // Get the registery where to put the result of the operation
         int result = this.getToReg(assigned, index, leftRegistery, rightRegistery);
@@ -178,7 +178,7 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
 
         // Get the registery index of the operand
         // If the operand is not in the registery, getReg() loads the value in the memory
-        int operande = this.getReg(left, null, index);
+        int operande = this.getReg(left, assigned, null, index);
 
         // Get the registery where to put the result of the operation
         int result = this.getToReg(assigned, index, operande, -1);
@@ -215,7 +215,7 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
 
         // Get the registery index of the operand
         // If the operand is not in the registery, getReg() loads the value in the memory
-        int operande = this.getReg(left, null, index);
+        int operande = this.getReg(left, assigned, null, index);
 
         // Update the memory by adding a reference to the registery
         this.memory.put(assigned, new ArrayList<>());
@@ -230,7 +230,7 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
     }
 
 
-    public int getReg(String operand, String locked, int opIndex) {
+    public int getReg(String operand, String assigned, String locked, int opIndex) {
 
         // 1.
         // If the operand is already in the registery Rn
@@ -287,10 +287,10 @@ public class PrintMachineCodeVisitor implements ParserVisitor {
         // Return n
         reg_loop:
         for (int i = 0; i < registery.size(); i++) {
-            if (!this.registery.get(i).contains(operand))
+            if (!this.registery.get(i).contains(assigned))
                 continue reg_loop;
 
-            int index =  this.registery.get(i).indexOf(operand);
+            int index =  this.registery.get(i).indexOf(assigned);
 
             in_loop:
             for (int j = 0; j < this.registery.get(i).size(); j++) {
